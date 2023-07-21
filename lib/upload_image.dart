@@ -16,14 +16,89 @@ class UploadImageScreen extends StatefulWidget {
 }
 
 class _UploadImageScreenState extends State<UploadImageScreen> {
+  var BCompresspath = '';
+  var ACompresspath = '';
+  late String imgName;
   List<Asset> imagesList = <Asset>[];
   List<File> compressedImages = [];
+
+  int height = 0;
+  int width = 0;
+  double sizeInKilobytes1 = 0.0;
+  double sizeInKilobytes = 0.0;
   String _error = 'No Error Dectected';
+  var image3;
+  var img4;
 
   bool showSpinner = false;
   @override
   void initState() {
     super.initState();
+  }
+
+  Widget buildListView() {
+    return ListView(
+      scrollDirection: Axis.horizontal,
+      children: List.generate(compressedImages.length, (index) {
+        //File asset = compressedImages[index];
+
+        return SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              children: [
+                Container(
+                  width: 100,
+                  height: 100,
+                  child: Image.file(compressedImages[index],
+                      height: 100, width: 100),
+                ),
+                Text(
+                    "${compressedImages[index].absolute.readAsBytesSync().lengthInBytes / 1024}"),
+              ],
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget buildInfoListView() {
+    return ListView(
+      children: [
+        SizedBox(
+          height: 600,
+          child: ListView.builder(
+            itemCount: 1,
+            itemBuilder: (context, index) {
+              // for (var item in imagesList) {
+              //RandomData data = item;
+              return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: List.generate(imagesList.length, (index) {
+                      var img = imagesList[index]!;
+                      imgName = imagesList[index].name!;
+                      var width1 = imagesList[index].originalWidth!;
+                      var height1 = imagesList[index].originalHeight!;
+                      return Column(children: [
+                        AssetThumb(
+                          asset: img,
+                          width: 100,
+                          height: 100,
+                        ),
+                        Text("$imgName"),
+                        Text("$height1"),
+                        Text("$width1"),
+                      ]);
+                    }),
+                  ));
+              //}
+            },
+          ),
+        ),
+      ],
+    );
   }
 
   Widget buildGridView() {
@@ -62,9 +137,6 @@ class _UploadImageScreenState extends State<UploadImageScreen> {
       error = e.toString();
     }
 
-    // If the widget was removed from the tree while the asynchronous platform
-    // message was in flight, we want to discard the reply rather than calling
-    // setState to update our non-existent appearance.
     if (!mounted) return;
     setState(() {
       imagesList = resultList;
@@ -79,48 +151,60 @@ class _UploadImageScreenState extends State<UploadImageScreen> {
   }
 
   Future<void> compressImages() async {
-    for (var image in imagesList) {
-      ByteData byteData = await image.getByteData(quality: 100);
+    for (image3 in imagesList) {
+      ByteData byteData = await image3.getByteData(quality: 100);
       Uint8List imageData = byteData.buffer.asUint8List();
 
-      var compressedImage = await FlutterImageCompress.compressWithList(
-        imageData,
-        quality: 70, // Adjust the quality as per your requirements
-      );
+      print('before compressed');
+      print("Name ${image3.name}");
+      final temp = await getTemporaryDirectory();
+      BCompresspath = '${temp.path}/${image3.name}';
+      print("path $BCompresspath");
+      print("identifier ${image3.identifier}");
+      height = image3.originalHeight!;
+      width = image3.originalWidth!;
+      print("originalHeight $height");
+      print("originalWidth $width");
+      int sizeInBytes1 = imageData.lengthInBytes;
+      sizeInKilobytes1 = sizeInBytes1 / 1024;
+      double sizeInMegabytes1 = sizeInKilobytes1 / 1024;
+      print('Size in bytes: $sizeInBytes1');
+      print('Size in kilobytes: $sizeInKilobytes1');
+      print('Size in megabytes: $sizeInMegabytes1');
+
+      var compressedImage =
+          await FlutterImageCompress.compressWithList(imageData,
+              quality: 70, // Adjust the quality as per your requirements
+              minHeight: height,
+              minWidth: width,
+              format: CompressFormat.jpeg);
 
       var tempDir = await getTemporaryDirectory();
-      var compressedFile = File('${tempDir.path}/${image.name}');
+      File compressedFile = File('${tempDir.path}/${image3.name}');
       await compressedFile.writeAsBytes(compressedImage);
-
+      img4 = compressedImage;
       int sizeInBytes = compressedImage.lengthInBytes;
-      double sizeInKilobytes = sizeInBytes / 1024;
+      sizeInKilobytes = sizeInBytes / 1024;
       double sizeInMegabytes = sizeInKilobytes / 1024;
-
+      print('After compressed Image');
       print('Size in bytes: $sizeInBytes');
       print('Size in kilobytes: $sizeInKilobytes');
       print('Size in megabytes: $sizeInMegabytes');
+
+      var decodedImage =
+          await decodeImageFromList(compressedFile.readAsBytesSync());
+      print('Height ${decodedImage.height}');
+      print('Width ${decodedImage.width}');
+      ACompresspath = compressedFile.path;
+      print(ACompresspath);
+
       setState(() {
         compressedImages.add(compressedFile);
       });
     }
   }
 
-  //XFile? imagesList;
-
-  // Future getImage() async {
-  //   final pickedFile =
-  //       await ImagePicker().pickImage(source: ImageSource.gallery);
-  //   if (pickedFile != null) {
-  //     image = XFile(pickedFile!.path);
-  //     setState(() {});
-  //   } else {
-  //     print('no image seleected');
-  //   }
-  // }
-
   Future<void> uploadImage() async {
-    // var stream = new http.ByteStream(image!.openRead());
-    // stream.cast();
     try {
       setState(() {
         showSpinner = true;
@@ -132,13 +216,8 @@ class _UploadImageScreenState extends State<UploadImageScreen> {
           'http://121.240.30.232:3702/ImageApi/Api/DocumentUpload/MediaUpload');
       http.MultipartRequest request = new http.MultipartRequest('POST', uri);
 
-      //request.fields['title'] = "Static title";
-      // var multiport = new http.MultipartFile('image', stream, length);
       for (int i = 0; i < compressedImages.length; i++) {
         print(compressedImages[i].path);
-        // var path1 = await LecleFlutterAbsolutePath.getAbsolutePath(
-        //     uri: compressedImages[i].path); //imagesList[i].identifier!
-        // XFile imageFile = XFile(path1!);
         request.files.add(await http.MultipartFile.fromPath(
             "rohan_image", compressedImages[i].path));
       }
@@ -170,23 +249,27 @@ class _UploadImageScreenState extends State<UploadImageScreen> {
       inAsyncCall: showSpinner,
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Upload Image'),
+          title: const Text('Upload Image'),
         ),
         body: Center(
           child: Column(
             children: <Widget>[
               Center(child: Text('Error: $_error')),
               ElevatedButton(
-                child: Text("Pick images"),
                 onPressed: loadAssets,
+                child: const Text("Pick images"),
               ),
-              Expanded(
-                child: buildGridView(),
-              ),
+
+              SizedBox(height: 200, child: buildInfoListView()),
+              SizedBox(height: 200, child: buildListView()),
+              // Text(
+              //     'before compressed \nPath: $BCompresspath \nHeight: $height \nWidth: $width \nKB: $sizeInKilobytes1'),
+              // Text(
+              //     'After compressed \nPath: $ACompresspath \nHeight: $height \nWidth: $width \nKB: $sizeInKilobytes'),
               Visibility(
                 visible: imagesList.isEmpty ? false : true,
                 child: ElevatedButton(
-                  child: Text("Upload"),
+                  child: const Text("Upload"),
                   onPressed: () async {
                     uploadImage();
                   },
