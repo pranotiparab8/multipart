@@ -38,7 +38,7 @@ dependencies:
   provider:
   lecle_flutter_absolute_path: ^0.0.2+1
   flutter_image_compress: ^1.1.3
-
+  image: ^3.0.1
 
 
   # The following adds the Cupertino Icons font to your application.
