@@ -20,7 +20,6 @@ class UploadImageScreen extends StatefulWidget {
 class _UploadImageScreenState extends State<UploadImageScreen> {
   String imageSize = 'Calculating...';
 
-  late String imgName;
   List<Asset> imagesList = <Asset>[];
   List<Asset> resultList = <Asset>[];
   List<RandomData> myImagesList = <RandomData>[];
@@ -45,7 +44,7 @@ class _UploadImageScreenState extends State<UploadImageScreen> {
         itemBuilder: (context, index) {
           {
             var img = resultList[index]!;
-            imgName = resultList[index].name!;
+            var imgName = resultList[index].name!;
             var width1 = resultList[index].originalWidth!;
             var height1 = resultList[index].originalHeight!;
             return FutureBuilder<ByteData>(
@@ -85,53 +84,54 @@ class _UploadImageScreenState extends State<UploadImageScreen> {
       ),
     );
   }
-  // Widget buildInfoListView() {
-  //   return SizedBox(
-  //     height: 200,
-  //     child: ListView.builder(
-  //       itemCount: myImagesList.length,
-  //       scrollDirection: Axis.horizontal,
-  //       itemBuilder: (context, index) {
-  //         {
-  //           return Column(children: [
-  //             AssetThumb(
-  //               asset: myImagesList[index].img,
-  //               width: 50,
-  //               height: 50,
-  //             ),
-  //             Text('Image Size: ${myImagesList[index].size}'),
-  //             Text("Height: ${myImagesList[index].height}"),
-  //             Text("Width: ${myImagesList[index].width}"),
-  //           ]);
-  //         }
-  //       },
-  //     ),
-  //   );
-  // }
 
-  // Widget buildListView() {
-  //   return SizedBox(
-  //     height: 200,
-  //     child: ListView.builder(
-  //       itemCount: myComImagesList.length,
-  //       scrollDirection: Axis.horizontal,
-  //       itemBuilder: (context, index) {
-  //         {
-  //           return Column(children: [
-  //             Container(
-  //               width: 50,
-  //               height: 50,
-  //               child: myComImagesList[index].img,
-  //             ),
-  //             Text('Image Size: ${myComImagesList[index].size}'),
-  //             Text("Height: ${myComImagesList[index].height}"),
-  //             Text("Width: ${myComImagesList[index].width}"),
-  //           ]);
-  //         }
-  //       },
-  //     ),
-  //   );
-  // }
+  Widget buildInfoListView1() {
+    return SizedBox(
+      height: 200,
+      child: ListView.builder(
+        itemCount: myImagesList.length,
+        scrollDirection: Axis.horizontal,
+        itemBuilder: (context, index) {
+          {
+            return Column(children: [
+              AssetThumb(
+                asset: myImagesList[index].img,
+                width: 50,
+                height: 50,
+              ),
+              Text('Image Size: ${myImagesList[index].size}'),
+              Text("Height: ${myImagesList[index].height}"),
+              Text("Width: ${myImagesList[index].width}"),
+            ]);
+          }
+        },
+      ),
+    );
+  }
+
+  Widget buildListView1() {
+    return SizedBox(
+      height: 200,
+      child: ListView.builder(
+        itemCount: myComImagesList.length,
+        scrollDirection: Axis.horizontal,
+        itemBuilder: (context, index) {
+          {
+            return Column(children: [
+              Container(
+                width: 50,
+                height: 50,
+                child: myComImagesList[index].img,
+              ),
+              Text('Image Size: ${myComImagesList[index].size}'),
+              Text("Height: ${myComImagesList[index].height}"),
+              Text("Width: ${myComImagesList[index].width}"),
+            ]);
+          }
+        },
+      ),
+    );
+  }
 
   Widget buildListView() {
     print("compressedImageList ${compressedImages.length}");
@@ -278,9 +278,9 @@ class _UploadImageScreenState extends State<UploadImageScreen> {
           width: decodedImage.width,
           size: size3,
         );
-        // if (compressedImages.isNotEmpty) {
-        //   compressedImages.clear();
-        // }
+        if (compressedImages.isNotEmpty) {
+          compressedImages.clear();
+        }
         myComImagesList.add(comRandomData);
         setState(() {});
       }
@@ -342,8 +342,10 @@ class _UploadImageScreenState extends State<UploadImageScreen> {
               onPressed: loadAssets,
               child: const Text("Pick images"),
             ),
-            SizedBox(height: 200, child: buildInfoListView()),
-            SizedBox(height: 200, child: buildListView()),
+            // SizedBox(height: 100, child: buildInfoListView1()),
+            // SizedBox(height: 150, child: buildListView1()),
+            SizedBox(height: 150, child: buildInfoListView()),
+            SizedBox(height: 150, child: buildListView()),
             Visibility(
               visible: imagesList.isEmpty ? false : true,
               child: ElevatedButton(
