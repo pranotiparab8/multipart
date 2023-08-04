@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -66,17 +67,20 @@ class _UploadImageScreenState extends State<UploadImageScreen> {
                       'Image data not available'); // Handle the case when image data is null
                 }
                 imageSizekb = (byteData.lengthInBytes) / 1024;
-                return Column(children: [
-                  AssetThumb(
-                    asset: img,
-                    width: 50,
-                    height: 50,
-                  ),
-                  Text('Image Size: $imageSizekb'),
-                  Text("$imgName "),
-                  Text("Height: $height1"),
-                  Text("Width: $width1"),
-                ]);
+                return Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(children: [
+                    AssetThumb(
+                      asset: img,
+                      width: 50,
+                      height: 50,
+                    ),
+                    Text('Image Size: $imageSizekb'),
+                    Text("$imgName "),
+                    Text("Height: $height1"),
+                    Text("Width: $width1"),
+                  ]),
+                );
               },
             );
           }
@@ -151,11 +155,26 @@ class _UploadImageScreenState extends State<UploadImageScreen> {
                       child: Image.file(compressedImages[index],
                           height: 50, width: 50),
                     ),
-                    Text(
-                        "Size: ${compressedImages[index].absolute.readAsBytesSync().lengthInBytes / 1024}"),
-                    Text("Height: List<File> compressedImages"),
-                    Text(
-                        "Width: ${Image.file(compressedImages[index]).height}"),
+                    FutureBuilder<Size>(
+                      future: getImageDimensions(compressedImages[index]),
+                      builder:
+                          (BuildContext context, AsyncSnapshot<Size> snapshot) {
+                        if (snapshot.connectionState == ConnectionState.done &&
+                            snapshot.hasData) {
+                          Size imageSize = snapshot.data!;
+                          return Column(
+                            children: [
+                              Text(
+                                  "Size: ${compressedImages[index].absolute.readAsBytesSync().lengthInBytes / 1024}"),
+                              Text("Height: ${imageSize.height}"),
+                              Text("Width: ${imageSize.width}"),
+                            ],
+                          );
+                        } else {
+                          return Container();
+                        }
+                      },
+                    ),
                   ],
                 ),
               );
@@ -187,7 +206,7 @@ class _UploadImageScreenState extends State<UploadImageScreen> {
       // imagesList = resultList;
       // _error = error;
 
-      for (var index = 0; index < resultList.length; index++) {
+      /* for (var index = 0; index < resultList.length; index++) {
         //resultList.forEach((element) async {
         var bytedata = await resultList[index].getByteData();
         Uint8List imageData = await bytedata.buffer.asUint8List();
@@ -207,13 +226,15 @@ class _UploadImageScreenState extends State<UploadImageScreen> {
             size: size4,
             path: resultList[index].name!);
         myImagesList.add(randomData);
+      }*/
+      if (compressedImages.isNotEmpty) {
+        compressedImages.clear();
       }
-
       if (resultList.isNotEmpty) {
         compressImages();
       }
       //});
-      setState(() {});
+      // setState(() {});
     } on Exception catch (e) {
       error = e.toString();
     }
@@ -221,69 +242,74 @@ class _UploadImageScreenState extends State<UploadImageScreen> {
 
   Future<void> compressImages() async {
     print("resultlist: ${resultList.length}");
-    for (int index = 0; index < resultList.length; index++) {
-      print("index $index");
+    try {
+      for (int index = 0; index < resultList.length; index++) {
+        print("index $index");
 
-      print('before compressed');
-      print("Name ${resultList[index].name}");
-      int height = resultList[index].originalHeight!;
-      int width = resultList[index].originalWidth!;
-      print("originalHeight $height originalWidth $width");
-      ByteData byteData = await resultList[index].getByteData();
+        print('before compressed');
+        print("Name ${resultList[index].name}");
+        int height = resultList[index].originalHeight!;
+        int width = resultList[index].originalWidth!;
+        print("originalHeight $height originalWidth $width");
 
-      Uint8List imageData = byteData.buffer.asUint8List();
-      int sizeInBytes1 = imageData.lengthInBytes;
-      double sizeInKilobytes1 = sizeInBytes1 / 1024;
-      double sizeInMegabytes1 = sizeInKilobytes1 / 1024;
-      print(
-          'Size in bytes: $sizeInBytes1 Size in kilobytes: $sizeInKilobytes1 Size in megabytes: $sizeInMegabytes1');
+        ByteData byteData = await resultList[index].getByteData();
+        Uint8List imageData = byteData.buffer.asUint8List();
+        int sizeInBytes1 = imageData.lengthInBytes;
+        double sizeInKilobytes1 = sizeInBytes1 / 1024;
+        double sizeInMegabytes1 = sizeInKilobytes1 / 1024;
+        print(
+            'Size in bytes: $sizeInBytes1 Size in kilobytes: $sizeInKilobytes1 Size in megabytes: $sizeInMegabytes1');
 
-      var compressedImage =
-          await FlutterImageCompress.compressWithList(imageData,
-              quality: 70, // Adjust the quality as per your requirements
-              minHeight: height,
-              minWidth: width,
-              format: CompressFormat.jpeg);
+        var compressedImage = await FlutterImageCompress.compressWithList(
+            imageData,
+            quality: 70,
+            minHeight: height,
+            minWidth: width,
+            format: CompressFormat.jpeg);
 
-      var tempDir = await getTemporaryDirectory();
-      File compressedFile =
-          await File('${tempDir.path}/${resultList[index].name}');
-      print("file ${compressedFile}");
-      await compressedFile.writeAsBytes(compressedImage);
+        var tempDir = await getTemporaryDirectory();
 
-      int sizeInBytes = compressedImage.lengthInBytes;
-      double sizeInKilobytes = sizeInBytes / 1024;
-      double sizeInMegabytes = sizeInKilobytes / 1024;
-      dynamic size3;
-      if (sizeInKilobytes <= 1024) {
-        size3 = "${sizeInKilobytes.toStringAsFixed(2)} KB";
-      } else {
-        size3 = "${sizeInMegabytes.toStringAsFixed(2)} MB";
-      }
-      print('After compressed Image');
-      print(
-          'Size in bytes: $sizeInBytes Size in kilobytes: $sizeInKilobytes Size in megabytes: $sizeInMegabytes');
-      var decodedImage =
-          await decodeImageFromList(compressedFile.readAsBytesSync());
-      var ACompresspath = compressedFile.path;
-      print(
-          '\nHeight ${decodedImage.height} \nWidth ${decodedImage.width} \n$ACompresspath');
+        File compressedFile =
+            await File('${tempDir.path}/${resultList[index].name}');
+        print("file $compressedFile");
+        await compressedFile.writeAsBytes(compressedImage);
 
-      compressedImages.add(compressedFile);
-      print(compressedImages.length);
-      for (var index = 0; index < compressedImages.length; index++) {
-        var comRandomData = CompRandomData(
-          img: Image.file(compressedImages[index], height: 50, width: 50),
-          height: decodedImage.height,
-          width: decodedImage.width,
-          size: size3,
-        );
-        if (compressedImages.isNotEmpty) {
-          compressedImages.clear();
+        int sizeInBytes = compressedImage.lengthInBytes;
+        double sizeInKilobytes = sizeInBytes / 1024;
+        double sizeInMegabytes = sizeInKilobytes / 1024;
+        dynamic size3;
+        if (sizeInKilobytes <= 1024) {
+          size3 = "${sizeInKilobytes.toStringAsFixed(2)} KB";
+        } else {
+          size3 = "${sizeInMegabytes.toStringAsFixed(2)} MB";
         }
-        myComImagesList.add(comRandomData);
-        setState(() {});
+        print('After compressed Image');
+        print(
+            'Size in bytes: $sizeInBytes Size in kilobytes: $sizeInKilobytes Size in megabytes: $sizeInMegabytes');
+        var decodedImage =
+            await decodeImageFromList(compressedFile.readAsBytesSync());
+        var ACompresspath = compressedFile.path;
+        print(
+            '\nHeight ${decodedImage.height} \nWidth ${decodedImage.width} \n$ACompresspath');
+
+        compressedImages.add(compressedFile);
+        /* print(compressedImages.length);
+        for (var index = 0; index < compressedImages.length; index++) {
+          var comRandomData = CompRandomData(
+            img: Image.file(compressedImages[index], height: 50, width: 50),
+            height: decodedImage.height,
+            width: decodedImage.width,
+            size: size3,
+          );
+          // if (compressedImages.isNotEmpty) {
+          //   compressedImages.clear();
+          // }
+          myComImagesList.add(comRandomData);
+          // setState(() {});
+        }*/
       }
+    } catch (e) {
+      print("e$e");
     }
 
     setState(() {});
@@ -342,12 +368,12 @@ class _UploadImageScreenState extends State<UploadImageScreen> {
               onPressed: loadAssets,
               child: const Text("Pick images"),
             ),
-            // SizedBox(height: 100, child: buildInfoListView1()),
-            // SizedBox(height: 150, child: buildListView1()),
+            //SizedBox(height: 100, child: buildInfoListView1()),
+            //SizedBox(height: 150, child: buildListView1()),
             SizedBox(height: 150, child: buildInfoListView()),
             SizedBox(height: 150, child: buildListView()),
             Visibility(
-              visible: imagesList.isEmpty ? false : true,
+              visible: resultList.isEmpty ? false : true,
               child: ElevatedButton(
                 child: const Text("Upload"),
                 onPressed: () async {
@@ -359,5 +385,20 @@ class _UploadImageScreenState extends State<UploadImageScreen> {
         ),
       ),
     );
+  }
+
+// Function to get the image dimensions asynchronously
+  Future<Size> getImageDimensions(File imageFile) async {
+    Completer<Size> completer = Completer();
+    Image image = Image.file(imageFile);
+    image.image
+        .resolve(ImageConfiguration())
+        .addListener(ImageStreamListener((ImageInfo info, bool _) {
+      completer.complete(Size(
+        info.image.width.toDouble(),
+        info.image.height.toDouble(),
+      ));
+    }));
+    return completer.future;
   }
 }
